@@ -906,6 +906,8 @@ SQInteger ScriptList::Valuate(HSQUIRRELVM vm)
 			}
 		}
 
+        // comment this to remove the valuator timeout
+
 		/* Kill the script when the valuator call takes way too long.
 		 * Triggered by nesting valuators, which then take billions of iterations. */
 		if (ScriptController::GetOpsTillSuspend() < -1000000) {

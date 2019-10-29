@@ -1,5 +1,8 @@
 # OpenTTD
 
+This is a forked version with profiler for Squirrel scripts added.
+Time spent in each function is printed to the AI console every 5 mins.
+
 ## Table of contents
 
 - 1.0) [About](#10-about)

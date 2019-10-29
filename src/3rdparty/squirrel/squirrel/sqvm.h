@@ -8,6 +8,74 @@
 #define MIN_STACK_OVERHEAD 10
 
 #define SQ_SUSPEND_FLAG -666
+
+// visual sucks, this doesn't compile (also with tr1)
+//#include <unordered_map>
+//std::unordered_map<int, int> zz;
+
+#include <algorithm>
+#include <ctime>
+#include "../../../script/api/script_log.hpp"
+
+// basically a hash map for storing function calls count
+// todo: copy contructor, assignment operator etc
+class SQProfiler {
+
+	struct FuncCount {
+		char name[255];
+		unsigned long long count;
+		FuncCount* next;
+
+		FuncCount() {}
+		FuncCount(const char* _name) : count(1), next(NULL) {
+			strcpy(name, _name);
+		}
+	};
+
+	// for qsort, std::vector doesn't compile for some reason in this project, so I needed to stay with pure C...
+	static int __cdecl cmpfunc(const void* a, const void* b) {
+		return reinterpret_cast<const FuncCount*>(b)->count - reinterpret_cast<const FuncCount*>(a)->count;
+	}
+
+	static const int HASH_MAP_SIZE = 32 * 1024;
+	FuncCount* _hash_map[HASH_MAP_SIZE];
+	int size;
+	time_t last_save;
+
+	// hashing func I always use
+	inline int _djb2_hash(const char* str) {
+		unsigned long hash = 5381;
+		int c;
+		while (c = *str++)
+			hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
+		return hash % HASH_MAP_SIZE;
+	}
+
+public:
+	SQProfiler() : size(0) {
+		for (int i = 0; i < HASH_MAP_SIZE; i++)
+			_hash_map[i] = NULL;
+		last_save = time(NULL);
+	}
+
+	~SQProfiler() {
+		FuncCount* to_del;
+		for (int i = 0; i < HASH_MAP_SIZE; i++) {
+			FuncCount* ptr = _hash_map[i];
+			while (ptr)	{
+				to_del = ptr;
+				ptr = ptr->next;
+				delete to_del;
+			}
+		}
+	}
+
+	void call(const char* name);
+
+	// print results in log every 60 secs
+	void print();
+};
+
 //base lib
 void sq_base_register(HSQUIRRELVM v);
 
@@ -145,6 +213,7 @@ public:
 	SQObjectPtr _lasterror;
 	SQObjectPtr _errorhandler;
 	SQObjectPtr _debughook;
+    SQProfiler _profiler;
 
 	SQObjectPtr temp_reg;
 
